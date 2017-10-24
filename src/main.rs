@@ -16,38 +16,30 @@ error_chain! {
 fn run(binpath: &str) -> Result<()> {
     match nix::unistd::fork()? {
         nix::unistd::ForkResult::Parent{child, ..} => {
-            match nix::sys::wait::waitpid(
+            let status = nix::sys::wait::waitpid(
                 child,
                 None
-            )? {
-                status => {
-                    println!("parent: status: {:#?}", status);
+            )?;
+            println!("parent: status: {:#?}", status);
 
-                    match nix::sys::ptrace::ptrace(
-                        nix::sys::ptrace::ptrace::PTRACE_PEEKUSER,
-                        child,
-                        (libc::ORIG_RAX * 8) as * mut nix::libc::c_void,
-                        std::ptr::null_mut()
-                    )? {
-                        ret => {
-                            println!("parent: ptrace return: {:#?}", ret);
-                        }
-                    }
-                }
-            }
+            let ret = nix::sys::ptrace::ptrace(
+                nix::sys::ptrace::ptrace::PTRACE_PEEKUSER,
+                child,
+                (libc::ORIG_RAX * 8) as * mut nix::libc::c_void,
+                std::ptr::null_mut()
+            )?;
+            println!("parent: ptrace return: {:#?}", ret);
         },
+
         nix::unistd::ForkResult::Child => {
-            match nix::sys::ptrace::ptrace(
+            let ret = nix::sys::ptrace::ptrace(
                 nix::sys::ptrace::ptrace::PTRACE_TRACEME,
                 nix::unistd::Pid::from_raw(0),
                 std::ptr::null_mut(),
                 std::ptr::null_mut()
-            )? {
-                ret => {
-                    println!("child: TRACEME worked: {:#?}", ret);
-                    nix::unistd::execvp(&ffi::CString::new(binpath).unwrap(), &[])?;
-                }
-            }
+            )?;
+            println!("child: TRACEME worked: {:#?}", ret);
+            nix::unistd::execvp(&ffi::CString::new(binpath).unwrap(), &[])?;
         }
     };
     Ok(())

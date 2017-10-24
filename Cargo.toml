@@ -1,0 +1,16 @@
+[package]
+name = "potential-couscous"
+version = "0.1.0"
+authors = ["talanor"]
+
+[dependencies]
+libc = "0.2"
+nix = "0.9.0"
+error-chain = "0.11"
+capstone = "0.1.0"
+
+[build-dependencies]
+bindgen = "0.30.0"
+
+[[bin]]
+name = "potential-couscous"
